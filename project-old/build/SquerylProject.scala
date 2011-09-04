@@ -7,6 +7,8 @@ class SquerylProject(info: ProjectInfo) extends DefaultProject(info) with BNDPlu
   
   val snapshot = systemOptional("snapshot", false).value
   
+  val crossScalaVersionString "2.9.0-1"
+  
   override def version = {
     super.version match{
       case BasicVersion(major, minor, micro, extra) if snapshot =>

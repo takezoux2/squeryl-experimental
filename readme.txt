@@ -20,7 +20,4 @@
 
   ========== Running in IDEA ========== 
 
- The project contains IDEAs .iml files, and the required files in .idea,
- so installing IDEA and the Scala plugin and creating a project in the
- root directory should be all that is necessary.
- http://www.jetbrains.net/confluence/display/SCA/Getting+Started+with+IntelliJ+IDEA+Scala+Plugin
+ Import pom.xml.
