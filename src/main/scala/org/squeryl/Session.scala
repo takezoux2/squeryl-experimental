@@ -23,6 +23,8 @@ import java.sql.{SQLException, ResultSet, Statement, Connection}
 
 class Session(val connection: Connection, val databaseAdapter: DatabaseAdapter, val statisticsListener: Option[StatisticsListener] = None) {
 
+  var shardInfo : Option[(String,Int)] = None
+
   def bindToCurrentThread = Session.currentSession = Some(this)
 
   def unbindFromCurrentThread = Session.currentSession = None
