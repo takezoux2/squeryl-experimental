@@ -1,6 +1,6 @@
 package org.squeryl.sharding
 
-import com.mysql.jdbc.Connection
+import java.sql.Connection
 
 /**
  * Created by IntelliJ IDEA.
