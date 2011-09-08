@@ -3,6 +3,7 @@ package org.squeryl.sharding
 import org.squeryl.internals.DatabaseAdapter
 import com.mysql.jdbc.Connection
 import org.squeryl.{SessionFactory, Session}
+import org.squeryl.logging.StatisticsListener
 
 /**
  * Created by IntelliJ IDEA.
@@ -36,6 +37,8 @@ trait ShardingSession{
   def databaseAdapter : DatabaseAdapter
   def connectionManager : ConnectionManager
 
+  var statisticsListener : Option[() => StatisticsListener] = None
+
   def reader(index : Int) : Session = session(ShardingSession.ModeRead,index)
   def writer(index : Int) : Session = session(ShardingSession.ModeWrite,index)
 
@@ -44,7 +47,12 @@ trait ShardingSession{
     if(config == null){
       throw new DatabaseConfigNotFoundException(shardName,ShardingSession.ModeNames(mode),index)
     }
-    val session = Session.create( connectionManager.connection(shardName,mode,config),databaseAdapter)
+    val session = if(statisticsListener.isDefined){
+      new Session(connectionManager.connection(shardName,mode,config),databaseAdapter,
+        Some(statisticsListener.get()))
+    }else{
+      Session.create( connectionManager.connection(shardName,mode,config),databaseAdapter)
+    }
     session.shardInfo = Some( (shardName,mode))
     session
   }

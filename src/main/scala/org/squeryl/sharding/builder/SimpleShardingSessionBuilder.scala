@@ -34,7 +34,10 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
   /**
    * Use for detecting adapter and driver class
    */
-  val adapterSelector = AdapterSelector
+  var adapterSelector = AdapterSelector
+
+
+  var enableConsoleStatisticsListener = false
 
 
   def addReader(config : DatabaseConfig) : SimpleShardingSessionBuilder = {
@@ -108,6 +111,10 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
         throw new SquerylException("Can't detect driver class. Adapter:" + adapter.getClass.getName)
       }
       Class.forName(driverClassName)
+    }
+
+    if(enableConsoleStatisticsListener){
+      session.statisticsListener = Some( () => ConsoleStatisticsListener)
     }
 
     session
