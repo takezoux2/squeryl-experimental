@@ -505,7 +505,7 @@ trait TypeArithmetic extends FieldTypes {
   }
 
   implicit def createOutMapperDateType: OutMapper[DateType] = new OutMapper[DateType] {
-    def doMap(rs: ResultSet) = mapDate2DateType(rs.getDate(index))
+    def doMap(rs: ResultSet) = mapDate2DateType(rs.getTimestamp(index))
     def sample = sampleDate
   }
 
@@ -623,7 +623,7 @@ trait TypeArithmetic extends FieldTypes {
 
   implicit def createOutMapperDateTypeOption: OutMapper[Option[DateType]] = new OutMapper[Option[DateType]] {
     def doMap(rs: ResultSet) = {
-      val v = mapDate2DateType(rs.getDate(index))
+      val v = mapDate2DateType(rs.getTimestamp(index))
       if(rs.wasNull)
         None
       else

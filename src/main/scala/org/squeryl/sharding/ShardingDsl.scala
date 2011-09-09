@@ -36,16 +36,14 @@ trait ShardingDsl {
     if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
       _executeTransactionWithin(Session.currentSession , a _)
     }else{
-      val s = Session.currentSession
-      val res =
-        try {
-          s.unbindFromCurrentThread
-          _executeTransactionWithin(SessionFactory.newSession, a _)
-        }
-        finally {
-          s.bindToCurrentThread
-        }
-      res
+      val s = Session.currentSessionOption
+      try {
+        if(s != None) s.get.unbindFromCurrentThread
+        _executeTransactionWithin(SessionFactory.newSession, a _)
+      }
+      finally {
+        if(s != None) s.get.bindToCurrentThread
+      }
     }
   }
 
