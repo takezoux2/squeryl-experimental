@@ -1,7 +1,6 @@
 .*
 !.gitignore
 *~
-pom.xml
 target
 project/boot/
 *_managed
