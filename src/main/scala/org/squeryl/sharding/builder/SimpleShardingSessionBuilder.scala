@@ -4,6 +4,7 @@ import org.squeryl.internals.DatabaseAdapter
 import org.squeryl.adapters.MySQLInnoDBAdapter
 import org.squeryl.SquerylException
 import org.squeryl.sharding._
+import org.squeryl.logging.StatisticsListener
 
 /**
  * 簡易のセットアップ手順を提供するBuilderクラス
@@ -38,6 +39,8 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
 
 
   var enableConsoleStatisticsListener = false
+
+  var statisticsListener : Option[() => StatisticsListener] = None
 
 
   def addReader(config : DatabaseConfig) : SimpleShardingSessionBuilder = {
@@ -113,7 +116,9 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
       Class.forName(driverClassName)
     }
 
-    if(enableConsoleStatisticsListener){
+    if(statisticsListener.isDefined){
+      session.statisticsListener = statisticsListener
+    }else if(enableConsoleStatisticsListener){
       session.statisticsListener = Some( () => ConsoleStatisticsListener)
     }
 

@@ -298,7 +298,7 @@ trait DatabaseAdapter {
     }
     catch {
       case e: SQLException =>
-          throw new RuntimeException(
+          throw new SquerylException(
             "Exception while executing statement : "+ e.getMessage+
            "\nerrorCode: " +
             e.getErrorCode + ", sqlState: " + e.getSQLState + "\n" +
@@ -330,7 +330,7 @@ trait DatabaseAdapter {
         if(silenceException(e))
           sp.foreach(c.rollback(_))
         else
-          throw new RuntimeException(
+          throw new SquerylException(
             "Exception while executing statement,\n" +
             "SQLState:" + e.getSQLState + ", ErrorCode:" + e.getErrorCode + "\n :" +
             sw.statement, e)

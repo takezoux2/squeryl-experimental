@@ -19,9 +19,9 @@ package org.squeryl.dsl.ast
 import collection.mutable.ArrayBuffer
 import org.squeryl.internals._
 import org.squeryl.dsl._
-import org.squeryl.{Query, KeyedEntity, Schema, Session}
 import javax.management.RuntimeErrorException
 import java.sql.ResultSet
+import org.squeryl._
 
 trait ExpressionNode {
 
@@ -286,7 +286,7 @@ trait TypedExpressionNode[T] extends ExpressionNode {
       }
       catch { // TODO: validate this at compile time with a scalac plugin
         case e:ClassCastException => {
-            throw new RuntimeException("left side of assignment '" + Utils.failSafeString(this.toString)+ "' is invalid, make sure statement uses *only* closure argument.", e)
+            throw new SquerylException("left side of assignment '" + Utils.failSafeString(this.toString)+ "' is invalid, make sure statement uses *only* closure argument.", e)
         }
       }
 
@@ -296,7 +296,7 @@ trait TypedExpressionNode[T] extends ExpressionNode {
       }
       catch { // TODO: validate this at compile time with a scalac plugin
         case e:ClassCastException => {
-          throw new RuntimeException("left side of assignment '" + Utils.failSafeString(this.toString)+ "' is invalid, make sure statement uses *only* closure argument.", e)
+          throw new SquerylException("left side of assignment '" + Utils.failSafeString(this.toString)+ "' is invalid, make sure statement uses *only* closure argument.", e)
         }
       }
     fmd

@@ -82,7 +82,7 @@ trait Optimistic {
   protected val occVersionNumber = 0
 }
 
-class StaleUpdateException(message: String) extends RuntimeException(message)
+class StaleUpdateException(message: String) extends SquerylException(message)
 
 trait EntityMember {
 

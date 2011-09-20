@@ -18,7 +18,7 @@ package org.squeryl.internals
 import java.sql.ResultSet
 import collection.mutable.ArrayBuffer
 import org.squeryl.dsl.ast.SelectElement
-
+import org.squeryl.SquerylException
 
 
 trait ResultSetUtils {
@@ -71,7 +71,7 @@ trait OutMapper[T] extends ResultSetUtils {
         doMap(rs)
       }
       catch {
-        case e:Exception => throw new RuntimeException(
+        case e:Exception => throw new SquerylException(
           "Exception while mapping column with OutMapper:\n" + this + "\nand resultSet :\n" + dumpRow(rs))
       }
     else
@@ -230,7 +230,7 @@ class ResultSetMapper extends ResultSetUtils {
     }
     catch {
       case e:Exception=> {
-        throw new RuntimeException("could not map row :\n" + dumpRow(resultSet) + "\n with mapper :\n" + this, e)
+        throw new SquerylException("could not map row :\n" + dumpRow(resultSet) + "\n with mapper :\n" + this, e)
       }
     }
   }

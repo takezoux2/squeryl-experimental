@@ -388,7 +388,7 @@ abstract class SchoolDb2Tests extends SchemaTester with RunTestsInsideTransactio
       physicsCourse.professors.associate(professeurTournesol)
     }
     catch {
-      case e:RuntimeException => {
+      case SquerylException(e : java.sql.SQLIntegrityConstraintViolationException) => {
         exceptionThrown = true
         sp.foreach(s.connection.rollback(_))
       }

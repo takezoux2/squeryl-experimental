@@ -15,13 +15,13 @@
  ***************************************************************************** */
 package org.squeryl.adapters
 
-import org.squeryl.{Session, Table}
 import org.squeryl.dsl.ast._
 import java.sql.SQLException
 import collection.Set
 import collection.immutable.List
 import collection.mutable.HashSet
 import org.squeryl.internals.{FieldMetaData, StatementWriter, DatabaseAdapter}
+import org.squeryl.{SquerylException, Session, Table}
 
 
 class OracleAdapter extends DatabaseAdapter {
@@ -166,7 +166,9 @@ class OracleAdapter extends DatabaseAdapter {
           pad <- paddingPossibilities(start, padLength - 1))
       yield pad + end
 
-  class CouldNotShrinkIdentifierException extends RuntimeException
+  class CouldNotShrinkIdentifierException(message : String) extends SquerylException(message){
+    def this() = this("")
+  }
 
   def makeUniqueInScope(s: String, scope: Set[String], padLength: Int): String = {
 

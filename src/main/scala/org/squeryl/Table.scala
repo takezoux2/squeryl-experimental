@@ -19,7 +19,7 @@ import dsl.ast._
 import dsl.{QueryDsl}
 import internals._
 import java.sql.{Statement}
-import logging.StackMarker
+import logging.{StatementInvocationEvent, StackMarker}
 import scala.reflect.Manifest
 import collection.mutable.ArrayBuffer
 import javax.swing.UIDefaults.LazyValue
@@ -52,7 +52,10 @@ class Table[T] private [squeryl] (n: String, c: Class[T], val schema: Schema, _p
       }        
 
     try {
-      val cnt = _dbAdapter.executeUpdateForInsert(sess, sw, st)
+
+      val cnt = _executeAndSendListener (sw,
+        _dbAdapter.executeUpdateForInsert(sess, sw, st),
+      statEx => sess.statisticsListener.get.insertExecuted(statEx) )
 
       if(cnt != 1)
         org.squeryl.internals.Utils.throwError("failed to insert")
@@ -166,6 +169,20 @@ class Table[T] private [squeryl] (n: String, c: Class[T], val schema: Schema, _p
     }
   }
 
+  def _executeAndSendListener[A](sw : StatementWriter, execute : => A, listener : StatementInvocationEvent => Unit ) = {
+
+    val sess = Session.currentSession
+    val beforeQueryExecute = System.currentTimeMillis
+
+    val result = execute
+
+    lazy val statEx = new StatementInvocationEvent(null, beforeQueryExecute, System.currentTimeMillis, -1, sw.statement)
+    if(sess.statisticsListener.isDefined){
+      listener(statEx)
+    }
+    result
+  }
+
   /**
    * Updates without any Optimistic Concurrency Control check 
    */
@@ -188,7 +205,11 @@ class Table[T] private [squeryl] (n: String, c: Class[T], val schema: Schema, _p
     val o0 = _callbacks.beforeUpdate(o.asInstanceOf[AnyRef]).asInstanceOf[T]
     dba.writeUpdate(o0, this, sw, checkOCC)
 
-    val cnt  = dba.executeUpdateAndCloseStatement(Session.currentSession, sw)
+    val cnt  = _executeAndSendListener( sw,
+      dba.executeUpdateAndCloseStatement(Session.currentSession, sw),
+      statEx => {
+        Session.currentSession.statisticsListener.get.updateExecuted(statEx)
+      })
 
     if(cnt != 1) {
       if(checkOCC && posoMetaData.isOptimistic) {
@@ -242,7 +263,11 @@ class Table[T] private [squeryl] (n: String, c: Class[T], val schema: Schema, _p
     val sw = new StatementWriter(dba)
     sw.inhibitAliasOnSelectElementReference = true
     dba.writeUpdate(this, us, sw)
-    dba.executeUpdateAndCloseStatement(Session.currentSession, sw)    
+
+    _executeAndSendListener (sw,dba.executeUpdateAndCloseStatement(Session.currentSession, sw),
+    statEx => {
+      Session.currentSession.statisticsListener.get.updateExecuted(statEx)
+    } )
   }
   
   def delete(q: Query[T]): Int = {
@@ -253,7 +278,10 @@ class Table[T] private [squeryl] (n: String, c: Class[T], val schema: Schema, _p
     val sw = new StatementWriter(_dbAdapter)
     _dbAdapter.writeDelete(this, queryAst.whereClause, sw)
 
-    _dbAdapter.executeUpdateAndCloseStatement(Session.currentSession, sw)
+    _executeAndSendListener (sw, _dbAdapter.executeUpdateAndCloseStatement(Session.currentSession, sw),
+      statEx => {
+        Session.currentSession.statisticsListener.get.deleteExecuted(statEx)
+      })
   }
 
   def deleteWhere(whereClause: T => LogicalBoolean)(implicit dsl: QueryDsl): Int =

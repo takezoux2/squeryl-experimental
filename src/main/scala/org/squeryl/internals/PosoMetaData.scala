@@ -55,9 +55,9 @@ class PosoMetaData[T](val clasz: Class[T], val schema: Schema, val viewOrTable: 
       }
       catch {
         case e:IllegalArgumentException =>
-          throw new RuntimeException("invalid constructor choice " + constructor._1, e)
+          throw new SquerylException("invalid constructor choice " + constructor._1, e)
         case e:Exception =>
-          throw new RuntimeException("exception occurred while invoking constructor : " + constructor._1, e)
+          throw new SquerylException("exception occurred while invoking constructor : " + constructor._1, e)
       }
     
     val members = new ArrayBuffer[(Member,HashSet[Annotation])]

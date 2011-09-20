@@ -12,19 +12,23 @@ import org.squeryl.logging.{StatementInvocationEvent, StatisticsListener}
 
 object ConsoleStatisticsListener extends StatisticsListener{
 
+  def toElapsed(se : StatementInvocationEvent) = {
+    (se.end - se.start) + " msec"
+  }
+
   def queryExecuted(se: StatementInvocationEvent) = {
-    println("ecexute : " + se.jdbcStatement)
+    println(toElapsed(se) + " : " + se.jdbcStatement)
   }
 
   def resultSetIterationEnded(statementInvocationId: String, iterationEndTime: Long, rowCount: Int, iterationCompleted: Boolean) {}
 
   def updateExecuted(se: StatementInvocationEvent) = {
-    println("ecexute : " + se.jdbcStatement)
+    println(toElapsed(se) + " : " + se.jdbcStatement)
   }
   def insertExecuted(se: StatementInvocationEvent) = {
-    println("ecexute : " + se.jdbcStatement)
+    println(toElapsed(se) + " : " + se.jdbcStatement)
   }
   def deleteExecuted(se: StatementInvocationEvent) = {
-    println("ecexute : " + se.jdbcStatement)
+    println(toElapsed(se) + " : " + se.jdbcStatement)
   }
 }
