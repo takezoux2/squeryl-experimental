@@ -17,7 +17,7 @@ trait ShardingDsl {
    *
    */
   def use[A](shardName : String)(a : => A) : A = {
-    if(hasSameShardSession(shardName,ShardingSession.ModeRead)){
+    if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
       _using(Session.currentSession,a _)
     }else{
       _using(ShardingSessionFactory(shardName).selectWriter, a _)
@@ -34,7 +34,7 @@ trait ShardingDsl {
 
   def write[A](shardName : String)( a : => A) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      _executeTransactionWithin(Session.currentSession , a _)
+      _using(Session.currentSession , a _)
     }else{
       val s = Session.currentSessionOption
       try {

@@ -7,7 +7,7 @@ import org.squeryl.sharding._
 import org.squeryl.logging.StatisticsListener
 
 /**
- * 簡易のセットアップ手順を提供するBuilderクラス
+ * This builder class offers the way of brief initialization for sharding
  * User: takeshita
  * Date: 11/09/07
  * Time: 23:38
@@ -108,6 +108,7 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
       })
     }
 
+    // Load driver class
     if(autoLoadDriverClass){
       val driverClassName = adapterSelector.getDriverClassName(adapter)
       if(driverClassName == null){
@@ -116,6 +117,7 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
       Class.forName(driverClassName)
     }
 
+    // set statistics listener
     if(statisticsListener.isDefined){
       session.statisticsListener = statisticsListener
     }else if(enableConsoleStatisticsListener){

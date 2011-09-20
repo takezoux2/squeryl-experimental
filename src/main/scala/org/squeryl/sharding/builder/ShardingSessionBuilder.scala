@@ -3,7 +3,7 @@ package org.squeryl.sharding.builder
 import org.squeryl.sharding.{ShardingSession, ShardingSessionFactory}
 
 /**
- * Created by IntelliJ IDEA.
+ * Builder to create shard session
  * User: takeshita
  * Date: 11/09/07
  * Time: 23:49
