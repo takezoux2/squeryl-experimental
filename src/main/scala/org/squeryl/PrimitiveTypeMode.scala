@@ -206,7 +206,7 @@ trait PrimitiveTypeMode extends QueryDsl with ShardingDsl with RawSQLSupport {
   def createLeafNodeOfScalarDateType(i: Date) =
     FieldReferenceLinker.takeLastAccessedFieldReference match {
       case None =>
-        new ConstantExpressionNode[Date](new java.sql.Date(i.getTime)) with DateExpression[Date]
+        new ConstantExpressionNode[Date](i) with DateExpression[Date]
       case Some(n:SelectElement) =>
         new SelectElementReference[Date](n) with DateExpression[Date]
     }
