@@ -39,7 +39,7 @@ trait ShardingDsl {
       val s = Session.currentSessionOption
       try {
         if(s != None) s.get.unbindFromCurrentThread
-        _executeTransactionWithin(SessionFactory.newSession, a _)
+        _executeTransactionWithin(ShardingSessionFactory(shardName).selectWriter, a _)
       }
       finally {
         if(s != None) s.get.bindToCurrentThread
@@ -48,7 +48,7 @@ trait ShardingDsl {
   }
 
 
-  def hasSameShardSession(shardName : String , mode : Int) : Boolean = {
+  private def hasSameShardSession(shardName : String , mode : Int) : Boolean = {
     if(! Session.hasCurrentSession){
       return false
     }else{
