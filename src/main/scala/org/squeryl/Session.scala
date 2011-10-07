@@ -49,6 +49,18 @@ class Session(val connection: Connection, val databaseAdapter: DatabaseAdapter, 
 
   private [squeryl] def _addResultSet(rs: ResultSet) = _resultSets.append(rs)
 
+  private var _useCounter = 0
+
+  /**
+   * increment use counter
+   */
+  def use = _useCounter += 1
+
+  /**
+   * decrement use counter
+   */
+  def unuse = _useCounter -= 1
+
   def cleanup = {
     _statements.foreach(s => {
       if (logUnclosedStatements && isLoggingEnabled && !s.isClosed) {
@@ -60,6 +72,16 @@ class Session(val connection: Connection, val databaseAdapter: DatabaseAdapter, 
     _statements.clear
     _resultSets.foreach(rs => Utils.close(rs))
     _resultSets.clear
+
+  }
+
+  /**
+   * close connection only if _useCounter is 0 or less
+   */
+  def safeClose() = {
+    if(_useCounter <= 0){
+      close
+    }
   }
 
   def close = {

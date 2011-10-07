@@ -64,6 +64,7 @@ trait ShardingDsl {
     val s = Session.currentSessionOption
     try {
       if(s != None) s.get.unbindFromCurrentThread
+      session.use
       try {
         session.bindToCurrentThread
         val r = a()
@@ -72,6 +73,8 @@ trait ShardingDsl {
       finally {
         session.unbindFromCurrentThread
         session.cleanup
+        session.unuse
+        session.safeClose()
       }
     }
     finally {
