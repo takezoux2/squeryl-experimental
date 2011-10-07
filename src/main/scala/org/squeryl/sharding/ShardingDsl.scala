@@ -18,23 +18,23 @@ trait ShardingDsl {
    */
   def use[A](shardName : String)(a : => A) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      _using(Session.currentSession,a _)
+      _executeWithoutTransaction(Session.currentSession,a _)
     }else{
-      _using(ShardingSessionFactory(shardName).selectWriter, a _)
+      _executeWithoutTransaction(ShardingSessionFactory(shardName).selectWriter, a _)
     }
   }
 
   def read[A](shardName : String)(a : => A ) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeRead)){
-      _using(Session.currentSession,a _)
+      _executeWithoutTransaction(Session.currentSession,a _)
     }else{
-      _using(ShardingSessionFactory(shardName).selectReader, a _)
+      _executeWithoutTransaction(ShardingSessionFactory(shardName).selectReader, a _)
     }
   }
 
   def write[A](shardName : String)( a : => A) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      _using(Session.currentSession , a _)
+      _executeWithoutTransaction(Session.currentSession , a _)
     }else{
       val s = Session.currentSessionOption
       try {
@@ -60,11 +60,21 @@ trait ShardingDsl {
     }
   }
 
+  private def _executeWithoutTransaction[A](s : Session, a:() => A) = {
+    s.use
+    try{
+      _using(s,a)
+    }finally{
+      s.unuse
+      s.safeClose()
+    }
+
+  }
+
   private def _using[A](session: Session, a: ()=>A): A = {
     val s = Session.currentSessionOption
     try {
       if(s != None) s.get.unbindFromCurrentThread
-      session.use
       try {
         session.bindToCurrentThread
         val r = a()
@@ -73,8 +83,6 @@ trait ShardingDsl {
       finally {
         session.unbindFromCurrentThread
         session.cleanup
-        session.unuse
-        session.safeClose()
       }
     }
     finally {
@@ -90,7 +98,9 @@ trait ShardingDsl {
       c.setAutoCommit(false)
 
     var txOk = false
+    s.use
     try {
+
       val res = _using(s, a)
       txOk = true
       res
@@ -101,6 +111,8 @@ trait ShardingDsl {
           c.commit
         else
           c.rollback
+
+        s.unuse
       }
       catch {
         case e:SQLException => {
