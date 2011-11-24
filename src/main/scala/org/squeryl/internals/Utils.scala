@@ -19,10 +19,10 @@ import java.sql.{ResultSet, SQLException, Statement}
 import org.squeryl.dsl.boilerplate.Query1
 import org.squeryl.dsl.fsm.QueryElements
 import org.squeryl.dsl.QueryYield
+import org.squeryl.{Queryable,SquerylException}
 import org.squeryl.dsl.ast.{QueryExpressionElements, LogicalBoolean}
 import java.lang.RuntimeException
-import org.squeryl.{SquerylException, Queryable}
-
+import java.sql.Connection
 object Utils {
 
   /**
@@ -53,7 +53,10 @@ object Utils {
     try {rs.close}
     catch {case e:SQLException => {}}
 
-
+  def close(c: Connection) =
+    try {c.close}
+    catch {case e:SQLException => {}}
+    
   private class DummyQueryElements[Cond](override val whereClause: Option[()=>LogicalBoolean]) extends QueryElements[Cond]
   
   

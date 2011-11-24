@@ -55,7 +55,9 @@ trait QueryDsl
     }
   }
 
-
+   def transaction[A](s: Session)(a: =>A) = 
+     _executeTransactionWithin(s, a _)
+   
   /**
    * 'transaction' causes a new transaction to begin and commit after the block execution, or rollback
    * if an exception occurs. Invoking a transaction always cause a new one to
@@ -112,6 +114,7 @@ trait QueryDsl
       }
       catch {
         case e:SQLException => {
+          Utils.close(c)
           if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception 
         }
       }
