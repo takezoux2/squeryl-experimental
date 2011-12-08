@@ -110,7 +110,20 @@ trait ListExpressionNode extends ExpressionNode {
   def isEmpty: Boolean
 }
 
-class EqualityExpression(override val left: TypedExpressionNode[_], override val right: TypedExpressionNode[_]) extends BinaryOperatorNodeLogicalBoolean(left, right, "=")
+class EqualityExpression(override val left: TypedExpressionNode[_], override val right: TypedExpressionNode[_]) extends BinaryOperatorNodeLogicalBoolean(left, right, "=") {
+  
+  override def doWrite(sw: StatementWriter) =     
+    right match {
+      case c: ConstantExpressionNode[_] => 
+        if(c.value == None) {
+          left.write(sw)
+          sw.write(" is null")
+        }
+        else super.doWrite(sw)
+      case _ => super.doWrite(sw)
+    }
+  
+}
 
 class InclusionOperator(left: ExpressionNode, right: RightHandSideOfIn[_]) extends BinaryOperatorNodeLogicalBoolean(left, right, "in", true) {
 
@@ -308,9 +321,9 @@ class TokenExpressionNode(val token: String) extends ExpressionNode {
 }
 
 
-class UntypedConstantExpressionNode[T](v: T) extends ConstantExpressionNode[T](v, None : Option[OutMapper[T]])
+class InputOnlyConstantExpressionNode[T](v: T) extends ConstantExpressionNode[T](v, None : Option[OutMapper[T]]) with TypedExpressionNode[T]
 
-class ConstantExpressionNode[T] protected (val value: T, _mapper: Option[OutMapper[T]]) extends ExpressionNode {
+class ConstantExpressionNode[T] (val value: T, _mapper: Option[OutMapper[T]]) extends ExpressionNode {
 
   def this(v: T)(implicit m: OutMapper[T]) = this(v,Some(m))
 
@@ -576,8 +589,8 @@ class RightHandSideOfIn[A](val ast: ExpressionNode, val isIn: Option[Boolean] = 
       super.inhibited
 
   def isConstantEmptyList =
-    if(ast.isInstanceOf[ConstantExpressionNodeList[Any]]) {
-      ast.asInstanceOf[ConstantExpressionNodeList[Any]].isEmpty
+    if(ast.isInstanceOf[ConstantExpressionNodeList[_]]) {
+      ast.asInstanceOf[ConstantExpressionNodeList[_]].isEmpty
     }
     else false
 

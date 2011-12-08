@@ -28,6 +28,7 @@ import adapters.{MSSQLServer, PostgreSqlAdapter, OracleAdapter, MySQLAdapter, De
 import internals.{FieldMetaData, FieldReferenceLinker}
 import org.scalatest.Suite
 import collection.mutable.ArrayBuffer
+import org.squeryl.internals.StatementWriter
 
 
 object SingleTestRun extends org.scalatest.Tag("SingleTestRun")
@@ -42,6 +43,10 @@ class Student(var name: String, var lastName: String, var age: Option[Int], var 
   extends SchoolDbObject with Person {
 
   override def toString = "Student:" + id + ":" + name
+  
+  import org.squeryl.PrimitiveTypeMode._
+  
+  def dummyKey = compositeKey(age, addressId)
 }
 
 case class Course(var name: String, var startDate: Date, var finalExamDate: Option[Date],
@@ -125,7 +130,7 @@ class SchoolDb extends Schema {
   override val name = None
 
   override def columnNameFromPropertyName(n:String) =
-    NamingConventionTransforms.camelCase2underScore(n)
+    NamingConventionTransforms.snakify(n)
 
   /**
    * Let's illustrate the support for crappy table naming convention !
@@ -531,7 +536,7 @@ abstract class SchoolDbTestRun extends SchoolDbTestBase {
     passed('testInOpWithStringList)
   }
   
-  test("lifecycleCallbacks", SingleTestRun) {
+  test("lifecycleCallbacks") {
 
 
     beforeInsertsOfPerson.clear
@@ -634,6 +639,32 @@ abstract class SchoolDbTestRun extends SchoolDbTestBase {
       )
 
     validateQuery('testLikeOperator, q, identity[Int], List(gaitan.id,georgi.id,gontran.id))
+    
+  }
+  
+    
+  test("isNull and === None comparison", SingleTestRun){  
+    val z1 =
+      from(students)(s=>
+        where({
+          s.isMultilingual === None          
+          })
+        select(s.id)
+      )
+    
+    val z2 =
+      from(students)(s=>
+        where({
+          val a = s.isMultilingual.isNull
+          a
+          })
+        select(s.id)
+      )
+                
+      val r1 = z1.toSet
+      val r2 = z2.toSet
+      
+    assertEquals(r1, r2, "result of isNull and === None differ")      
   }
 
 //  test("NotOperator"){
@@ -1028,7 +1059,7 @@ abstract class SchoolDbTestRun extends SchoolDbTestBase {
     passed('testHavingClause)
   }
 
-  test("HavingClause2",SingleTestRun) {
+  test("HavingClause2") {
     //The query here doesn't make much sense, we just test that valid SQL gets generated :
     val q =
       from(professors)(p=> {
@@ -1322,6 +1353,14 @@ abstract class SchoolDbTestRun extends SchoolDbTestBase {
   }
 
 
+  test("#62 CompositeKey with Option members generate sql with = null instead of is null")  {
+    
+    val testInstance = sharedTestInstance; import testInstance._
+    // this should not blow up :
+    val q = students.where(_.dummyKey === (None: Option[Int], None: Option[Int]))
+    println(q.statement)
+    q.toList
+  }
 
   test("NewLeftOuterJoin2")  {
     val testInstance = sharedTestInstance; import testInstance._
@@ -1517,7 +1556,7 @@ abstract class SchoolDbTestRun extends SchoolDbTestBase {
 
 object Issue14Schema extends Schema{
   override def columnNameFromPropertyName(n:String) =
-    NamingConventionTransforms.camelCase2underScore(n)
+    NamingConventionTransforms.snakify(n)
 
 
   val professors = table[Professor]("issue14")

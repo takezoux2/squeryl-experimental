@@ -25,6 +25,28 @@ trait RawSQLSupport{
     }
   }
 
+  def executeWithoutTransaction[T](shardName : String)( func : DAO => T) : T = {
+
+    if( hasSameShardSession(shardName,ShardingSession.ModeWrite)){
+      val s = Session.currentSession
+      val dao = new DAO(s.connection)
+      val r = func(dao)
+      r
+    }else{
+      _executeWithoutTransaction(ShardingSessionFactory(shardName).selectWriter,func)
+    }
+  }
+  private def _executeWithoutTransaction[A](s : Session, a:DAO => A) = {
+    s.use
+    try{
+      _using(s,a)
+    }finally{
+      s.unuse
+      s.safeClose()
+    }
+
+  }
+
   private def _using[T](session : Session,func : DAO => T) = {
     val s = Session.currentSessionOption
     try {
@@ -105,8 +127,17 @@ trait RawSQLSupport{
         ps.setObject(index,p)
         index += 1
       }
-
       ps.executeUpdate()
+    }
+
+    def execBatch( sqls : String*) : Array[Int] = {
+      val st = con.createStatement()
+
+      sqls.foreach( sql => {
+        st.addBatch( sql)
+      })
+
+      st.executeBatch()
     }
 
     def execQuery(sql : String, params : Any*) : ResultSet = {

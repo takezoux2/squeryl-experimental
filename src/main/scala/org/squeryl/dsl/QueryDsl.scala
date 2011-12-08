@@ -22,6 +22,7 @@ import org.squeryl.internals._
 import org.squeryl._
 import java.sql.{SQLException, ResultSet}
 import collection.mutable.ArrayBuffer
+import scala.runtime.NonLocalReturnControl
 
 trait QueryDsl
   extends DslFactory
@@ -104,6 +105,13 @@ trait QueryDsl
       val res = _using(s, a)
       txOk = true
       res
+    }
+    catch {
+      case e:NonLocalReturnControl[_] => 
+      {
+        txOk = true
+        throw e
+      }
     }
     finally {
       try {
@@ -550,14 +558,13 @@ trait QueryDsl
     if(isSelfReference)
       assert(ee.right._fieldMetaData.isIdFieldOfKeyedEntity || ee.left._fieldMetaData.isIdFieldOfKeyedEntity)
 
-    if(ee.left._fieldMetaData.parentMetaData.clasz == rightTable.classOfT) {
-      if(!isSelfReference)
-        assert(ee.right._fieldMetaData.isIdFieldOfKeyedEntity)
+    if(ee.left._fieldMetaData.parentMetaData.clasz == rightTable.classOfT &&
+       (!isSelfReference || (isSelfReference && ee.right._fieldMetaData.isIdFieldOfKeyedEntity)) ) {
+      assert(ee.right._fieldMetaData.isIdFieldOfKeyedEntity)
       (ee.right._fieldMetaData, ee.left._fieldMetaData)
     }
     else {
-      if(!isSelfReference)
-        assert(ee.left._fieldMetaData.isIdFieldOfKeyedEntity)
+      assert(ee.left._fieldMetaData.isIdFieldOfKeyedEntity)
       (ee.left._fieldMetaData, ee.right._fieldMetaData)
     }
   }

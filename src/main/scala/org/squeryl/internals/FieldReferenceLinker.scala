@@ -176,7 +176,7 @@ object FieldReferenceLinker {
 
     new BinaryOperatorNodeLogicalBoolean(
       fr,
-      new UntypedConstantExpressionNode[Any](c),
+      new InputOnlyConstantExpressionNode[Any](c),
       "=")
   }
   
@@ -268,11 +268,7 @@ object FieldReferenceLinker {
 
   private def _findQENThatOwns(sample: AnyRef, q: QueryExpressionElements): Option[QueryableExpressionNode] = {
 
-    for(d <- q.filterDescendantsOfType[QueryableExpressionNode])
-      if(d.owns(sample))
-        return Some(d)
-
-    None
+    q.filterDescendantsOfType[QueryableExpressionNode].find(_.owns(sample))
   }
 
   def createCallBack(v: ViewExpressionNode[_]): Callback =
