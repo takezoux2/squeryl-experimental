@@ -63,7 +63,7 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.9.0</artifactId>
-            <version>1.4.1</version>
+            <version>1.6.1</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -121,6 +121,7 @@
                 <configuration>
                     <useFile>false</useFile>
                     <disableXmlReport>true</disableXmlReport>
+                    <failIfNoTests>false</failIfNoTests>
                     <!-- If you have classpath issue like NoDefClassError,... -->
                     <!-- useManifestOnlyJar>false</useManifestOnlyJar -->
                     <includes>

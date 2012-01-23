@@ -11,7 +11,7 @@ import org.squeryl.sharding.{ShardingSession, ShardingSessionFactory}
  */
 
 trait ShardingSessionBuilder{
-  var name : String = ShardingSessionFactory.DefaultShardName
+  var name : String = "default"
 
   def create() : ShardingSession = create(this.name)
   def create( _name : String) : ShardingSession

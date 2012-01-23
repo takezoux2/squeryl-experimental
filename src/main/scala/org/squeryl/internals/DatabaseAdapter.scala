@@ -172,7 +172,7 @@ trait DatabaseAdapter {
   def stringTypeDeclaration(length:Int) = "varchar("+length+")"
   def booleanTypeDeclaration = "boolean"
   def doubleTypeDeclaration = "double"
-  def dateTypeDeclaration = "datetime"
+  def dateTypeDeclaration = "date"
   def longTypeDeclaration = "bigint"
   def floatTypeDeclaration = "real"
   def bigDecimalTypeDeclaration = "decimal"

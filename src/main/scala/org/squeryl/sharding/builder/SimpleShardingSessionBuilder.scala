@@ -7,7 +7,7 @@ import org.squeryl.sharding._
 import org.squeryl.logging.StatisticsListener
 
 /**
- * This builder class offers the way of brief initialization for sharding
+ * This builder class offers the way of brief initialization for sharding.
  * User: takeshita
  * Date: 11/09/07
  * Time: 23:38

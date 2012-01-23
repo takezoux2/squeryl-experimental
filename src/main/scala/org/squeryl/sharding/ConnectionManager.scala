@@ -4,7 +4,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 
 /**
- * Created by IntelliJ IDEA.
+ * manage connections
  * User: takezou
  * Date: 11/09/04
  * Time: 21:16
@@ -17,6 +17,9 @@ trait ConnectionManager {
 
 }
 
+/**
+ * Create new connection whenever connection method called.
+ */
 class AlwaysCreateConnectionManager extends ConnectionManager{
   def connection(shardName: String, mode: Int, config: DatabaseConfig) = {
     if(config.username.isDefined && config.password.isDefined){

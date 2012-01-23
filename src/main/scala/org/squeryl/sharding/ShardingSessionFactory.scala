@@ -75,29 +75,28 @@ Exception("Databse config for shard:%s mode:%s index:%s".format(shardName,modeNa
 
 object ShardingSessionFactory extends ShardingSessionFactory{
 
-  /**
-   * The name of default shard.
-   * if there is only one db ( or db replication set), it's name should be this.
-   */
-  val DefaultShardName = "default"
-
 }
 
 class ShardingSessionFactory {
 
-  var shardingSessions = Map[String,ShardingSession]()
+  private var shardingSessions = Map[String,ShardingSession]()
+
+  def allShardingSessions = shardingSessions.values
+  def allShardNames = shardingSessions.keys
 
   def addShard(shardingSession : ShardingSession)  = {
+    if(shardingSessions.size == 0){
+      // register first ShardingSession as default squeryl session.
+      SessionFactory.concreteFactory = Some( () =>{
+        shardingSession.selectWriter
+      })
+    }
     shardingSessions +=( shardingSession.shardName -> shardingSession)
   }
 
   def apply(shardName : String) : ShardingSession = {
     shardingSessions(shardName)
   }
-
-  SessionFactory.concreteFactory = Some( () =>{
-    apply(ShardingSessionFactory.DefaultShardName).selectWriter
-  })
 
 
 }

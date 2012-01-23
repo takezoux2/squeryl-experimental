@@ -14,7 +14,7 @@ import org.squeryl.{SessionFactory, Session}
 trait ShardingDsl {
 
   /**
-   *
+   * exec in write mode without transaction
    */
   def use[A](shardName : String)(a : => A) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
@@ -24,6 +24,9 @@ trait ShardingDsl {
     }
   }
 
+  /**
+   * exec in read mode
+   */
   def read[A](shardName : String)(a : => A ) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeRead)){
       _executeWithoutTransaction(Session.currentSession,a _)
@@ -32,6 +35,9 @@ trait ShardingDsl {
     }
   }
 
+  /**
+   * exec in write mode with transaction
+   */
   def write[A](shardName : String)( a : => A) : A = {
     if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
       _executeWithoutTransaction(Session.currentSession , a _)
