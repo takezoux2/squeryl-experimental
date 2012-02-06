@@ -14,7 +14,7 @@ import org.squeryl.logging.StatisticsListener
  * To change this template use File | Settings | File Templates.
  */
 
-class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
+class SimpleShardedSessionBuilder extends ShardedSessionBuilder{
 
   var adapter : DatabaseAdapter = new MySQLInnoDBAdapter
 
@@ -43,28 +43,28 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
   var statisticsListener : Option[() => StatisticsListener] = None
 
 
-  def addReader(config : DatabaseConfig) : SimpleShardingSessionBuilder = {
+  def addReader(config : DatabaseConfig) : SimpleShardedSessionBuilder = {
     readerConfigs = readerConfigs :+ config
     this
   }
 
-  def addReader(url : String , username : String , password : String) : SimpleShardingSessionBuilder = {
+  def addReader(url : String , username : String , password : String) : SimpleShardedSessionBuilder = {
     readerConfigs = readerConfigs :+ new DatabaseConfig(url,Some(username),Some(password))
     this
   }
-  def addReader(url : String) : SimpleShardingSessionBuilder = {
+  def addReader(url : String) : SimpleShardedSessionBuilder = {
     readerConfigs = readerConfigs :+ new DatabaseConfig(url)
     this
   }
-  def addWriter(config : DatabaseConfig) : SimpleShardingSessionBuilder = {
+  def addWriter(config : DatabaseConfig) : SimpleShardedSessionBuilder = {
     writerConfigs = writerConfigs :+ config
     this
   }
-  def addWriter(url : String , username : String , password : String) : SimpleShardingSessionBuilder = {
+  def addWriter(url : String , username : String , password : String) : SimpleShardedSessionBuilder = {
     writerConfigs = writerConfigs :+ new DatabaseConfig(url,Some(username),Some(password))
     this
   }
-  def addWriter(url : String) : SimpleShardingSessionBuilder = {
+  def addWriter(url : String) : SimpleShardedSessionBuilder = {
     writerConfigs = writerConfigs :+ new DatabaseConfig(url)
     this
   }
@@ -89,22 +89,22 @@ class SimpleShardingSessionBuilder extends ShardingSessionBuilder{
       }
     }else this.adapter
 
-    val session = new SimpleShardingSession(
+    val session = new SimpleShardedSession(
       _name,
       connectionManager,
       adapter
     )
     writerConfigs.foreach(c => {
-      session.addConfig(ShardingSession.ModeWrite,c)
+      session.addConfig(ShardMode.Write,c)
     })
     // if there is no reader configs,use writer configs instead.
     if(readerConfigs.isEmpty){
       writerConfigs.foreach(c => {
-        session.addConfig(ShardingSession.ModeRead,c)
+        session.addConfig(ShardMode.Read,c)
       })
     }else{
       readerConfigs.foreach(c => {
-        session.addConfig(ShardingSession.ModeRead,c)
+        session.addConfig(ShardMode.Read,c)
       })
     }
 

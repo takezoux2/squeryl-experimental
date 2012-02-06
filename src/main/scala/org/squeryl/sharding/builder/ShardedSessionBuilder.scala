@@ -1,6 +1,6 @@
 package org.squeryl.sharding.builder
 
-import org.squeryl.sharding.{ShardingSession, ShardingSessionFactory}
+import org.squeryl.sharding.{ShardedSessionFactory, ShardedSessionRepository}
 
 /**
  * Builder to create shard session
@@ -10,9 +10,9 @@ import org.squeryl.sharding.{ShardingSession, ShardingSessionFactory}
  * To change this template use File | Settings | File Templates.
  */
 
-trait ShardingSessionBuilder{
+trait ShardedSessionBuilder{
   var name : String = "default"
 
-  def create() : ShardingSession = create(this.name)
-  def create( _name : String) : ShardingSession
+  def create() : ShardedSessionFactory = create(this.name)
+  def create( _name : String) : ShardedSessionFactory
 }
