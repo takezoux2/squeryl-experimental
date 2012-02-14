@@ -5,7 +5,6 @@ import com.mysql.jdbc.Connection
 import org.squeryl.{SessionFactory, Session}
 import org.squeryl.logging.StatisticsListener
 import java.lang.ThreadLocal
-import org.squeryl.sharding.ShardingSession.SessionEntry
 
 /**
  * Created by IntelliJ IDEA.
@@ -16,74 +15,12 @@ import org.squeryl.sharding.ShardingSession.SessionEntry
  */
 
 class DatabaseConfig(
-  var url : String,
+  var url : String,                       
   var username : Option[String] = None,
   var password : Option[String] = None  ){
 
 }
-
-object ShardingSession{
-
-  val ModeRead : Int = 0
-  val ModeWrite : Int = 1
-
-  val ModeNames : Map[Int,String] = Map[Int,String]( ModeRead -> "read",
-                         ModeWrite -> "write").withDefaultValue("????")
-
-  var shardingSessionFactory : ShardedSessionRepository = new ShardedSessionRepositoryImpl()
-
-  class SessionEntry(var name : String, var mode : Int , var session : Session)
-
-  val shardSessionRepo = new ThreadLocal[scala.collection.mutable.Map[String, SessionEntry]]{
-    override def initialValue(): Map[String, SessionEntry] = scala.collection.mutable.HashMap.empty
-
-    override def remove() {
-      get().values.foreach(entry => {
-        entry.session.close
-      })
-    }
-  }
-
-  def getSession(name : String, mode : Int) : Session = {
-    _getSession(name) match{
-      case Some(entry) => {
-        if(entry.mode <= mode){
-          return entry.session
-        }wlse{
-          val sessionFactory = shardingSessionFactory(name)
-          val session = sessionFactory. 
-        }
-      }
-      case None => {
-
-      }
-    }
-  }
-
-  private def _getSession( name : String) : Option[SessionEntry] = {
-    shardSessionRepo.get().get(name)
-  }
-
-  private def _setSession( name : String , mode : Int, session : Session) : Session = {
-    _getSession(name) match{
-      case Some(entry) => {
-        entry.session.safeClose()
-      }
-      case None =>
-    }
-    shardSessionRepo.get().update(name,new SessionEntry(name,mode,session))
-  }
-
-
-
-}
-
-object ShardMode extends Enumeration{
-  
-  val Read,Write = Value
-}
-
-trait ShardingSession{
+trait ShardedSessionFactory{
 
   val shardName : String
   def databaseAdapter : DatabaseAdapter
@@ -91,13 +28,18 @@ trait ShardingSession{
 
   var statisticsListener : Option[() => StatisticsListener] = None
 
-  def reader(index : Int) : Session = session(ShardingSession.ModeRead,index)
-  def writer(index : Int) : Session = session(ShardingSession.ModeWrite,index)
+  def reader(index : Int) : ShardedSession = session(ShardMode.Read,index)
+  def writer(index : Int) : ShardedSession = session(ShardMode.Write,index)
 
-  def session(mode : Int , index : Int) : Session = {
+  def session(mode : ShardMode.Value , index : Int) : ShardedSession = {
+    
+    def toShardedSession(session  :Session) = {
+      ShardedSession(shardName,mode,session)
+    }
+    
     val config = this.config(mode,index)
     if(config == null){
-      throw new DatabaseConfigNotFoundException(shardName,ShardingSession.ModeNames(mode),index)
+      throw new DatabaseConfigNotFoundException(shardName,mode.toString,index)
     }
     val session = if(statisticsListener.isDefined){
       new Session(connectionManager.connection(shardName,mode,config),databaseAdapter,
@@ -105,18 +47,17 @@ trait ShardingSession{
     }else{
       Session.create( connectionManager.connection(shardName,mode,config),databaseAdapter)
     }
-    session.shardInfo = Some( (shardName,mode))
-    session
+    toShardedSession(session)
   }
 
-  def selectReader : Session
-  def selectWriter : Session
+  def selectReader : ShardedSession
+  def selectWriter : ShardedSession
 
-  def getReaderConfig(index : Int ) : DatabaseConfig = config(ShardingSession.ModeRead,index)
+  def getReaderConfig(index : Int ) : DatabaseConfig = config(ShardMode.Read,index)
 
-  def getWriterConfig(index : Int) : DatabaseConfig = config(ShardingSession.ModeWrite,index)
+  def getWriterConfig(index : Int) : DatabaseConfig = config(ShardMode.Write,index)
 
-  def config(mode : Int , index : Int) : DatabaseConfig
+  def config(mode : ShardMode.Value , index : Int) : DatabaseConfig
 
 
 
@@ -128,29 +69,33 @@ Exception("Databse config for shard:%s mode:%s index:%s".format(shardName,modeNa
 
 trait ShardedSessionRepository{
 
-  def apply(name : String) : ShardingSession
+  def allShardNames : List[String]
+  def allFactories : List[ShardedSessionFactory]
+
+  def apply(name : String , mode : ShardMode.Value) : ShardedSession
+  def addFactory(factory : ShardedSessionFactory) : Unit
 
 }
 
 class ShardedSessionRepositoryImpl extends ShardedSessionRepository {
 
-  private var shardingSessions = Map[String,ShardingSession]()
+  private var shardedSessionFactories = Map[String,ShardedSessionFactory]()
 
-  def allShardingSessions = shardingSessions.values
-  def allShardNames = shardingSessions.keys
+  def allFactories = shardedSessionFactories.values.toList
+  def allShardNames = shardedSessionFactories.keys.toList
 
-  def addShard(shardingSession : ShardingSession)  = {
-    if(shardingSessions.size == 0){
-      // register first ShardingSession as default squeryl session.
+  def addFactory(shardingSession : ShardedSessionFactory)  = {
+    if(shardedSessionFactories.size == 0){
+      // register first ShardedSessionFactory as default squeryl session.
       SessionFactory.concreteFactory = Some( () =>{
-        shardingSession.selectWriter
+        shardingSession.selectWriter.session
       })
     }
-    shardingSessions +=( shardingSession.shardName -> shardingSession)
+    shardedSessionFactories +=( shardingSession.shardName -> shardingSession)
   }
 
-  def apply(shardName : String, mode : ) : ShardingSession = {
-    shardingSessions(shardName)
+  def apply(shardName : String, mode : ShardMode.Value) : ShardedSession = {
+    shardedSessionFactories(shardName).session(mode,0)
   }
 
 

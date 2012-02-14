@@ -1,10 +1,9 @@
 package org.squeryl.sql
 
 import org.squeryl.Session
-import org.squeryl.sharding.ShardingSessionFactory._
-import org.squeryl.sharding.{ShardingSession, ShardingSessionFactory}
 import com.mysql.jdbc.PreparedStatement
 import java.sql.{SQLException, ResultSet}
+import org.squeryl.sharding.{ShardMode, ShardedSession, ShardedSessionFactory, ShardedSessionRepository}
 
 /**
  * 
@@ -15,99 +14,26 @@ import java.sql.{SQLException, ResultSet}
 trait RawSQLSupport{
 
   def execute[T](shardName : String)(func : DAO => T) : T = {
-    if( hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      val s = Session.currentSession
-      val dao = new DAO(s.connection)
-      val r = func(dao)
-      r
-    }else{
-      _executeTransactionWithin(ShardingSessionFactory(shardName).selectWriter,func)
-    }
-  }
-
-  def executeWithoutTransaction[T](shardName : String)( func : DAO => T) : T = {
-
-    if( hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      val s = Session.currentSession
-      val dao = new DAO(s.connection)
-      val r = func(dao)
-      r
-    }else{
-      _executeWithoutTransaction(ShardingSessionFactory(shardName).selectWriter,func)
-    }
-  }
-  private def _executeWithoutTransaction[A](s : Session, a:DAO => A) = {
-    s.use
-    try{
-      _using(s,a)
-    }finally{
-      s.unuse
-      s.safeClose()
-    }
-
-  }
-
-  private def _using[T](session : Session,func : DAO => T) = {
-    val s = Session.currentSessionOption
-    try {
-      if(s != None) s.get.unbindFromCurrentThread
-      try {
-        session.bindToCurrentThread
-        val dao = new DAO(session.connection)
-        val r = func(dao)
-        r
-      }
-      finally {
-        session.unbindFromCurrentThread
-        session.cleanup
-      }
-    }
-    finally {
-      if(s != None) s.get.bindToCurrentThread
-    }
-  }
-  private def hasSameShardSession(shardName : String , mode : Int) : Boolean = {
-    if(! Session.hasCurrentSession){
-      return false
-    }else{
-      val session = Session.currentSession
-      session.shardInfo match{
-        case Some( (sn,m) ) => sn == shardName && m == mode
-        case _ => false
-      }
-    }
-  }
-
-  private def _executeTransactionWithin[A](s: Session, a: DAO => A) = {
-
-    val c = s.connection
-
-    if(c.getAutoCommit)
-      c.setAutoCommit(false)
-
+    val session = ShardedSession.getSession(shardName,ShardMode.Write)
+    
+    session.use()
+    session.beginTransaction()
     var txOk = false
-    try {
-      val res = _using(s, a)
+    
+    try{
+      val connection = session.session.connection
+      val dao = new DAO(connection)
+      val r = func(dao)
       txOk = true
-      res
-    }
-    finally {
-      try {
-        if(txOk)
-          c.commit
-        else
-          c.rollback
+      r
+    }finally{
+      if(txOk){
+        session.commitTransaction()
+      }else{
+        session.rollback()
       }
-      catch {
-        case e:SQLException => {
-          if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception
-        }
-      }
-      try{c.close}
-      catch {
-        case e:SQLException => {
-          if(txOk) throw e // if an exception occured b4 the close we don't want to obscure the original exception
-        }
+      if(session.safeClose()){
+        ShardedSession.removeSession(session)
       }
     }
   }
@@ -161,6 +87,16 @@ trait RawSQLSupport{
         }
       }
       rp.done(rs)
+      results.toList
+    }
+
+    def execQuery[T](sql : String, proc : ResultSet => T , params : Any*) : List[T] = {
+      var results = new scala.collection.mutable.LinkedList[T]
+
+      val rs = execQuery(sql,params:_*)
+      while(rs.next){
+        results :+= proc(rs)
+      }
       results.toList
     }
   }

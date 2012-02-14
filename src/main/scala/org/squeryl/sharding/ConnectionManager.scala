@@ -13,7 +13,7 @@ import java.sql.DriverManager
 
 trait ConnectionManager {
 
-  def connection(shardName : String , mode : Int , config : DatabaseConfig) : Connection
+  def connection(shardName : String , mode : ShardMode.Value , config : DatabaseConfig) : Connection
 
 }
 
@@ -21,7 +21,7 @@ trait ConnectionManager {
  * Create new connection whenever connection method called.
  */
 class AlwaysCreateConnectionManager extends ConnectionManager{
-  def connection(shardName: String, mode: Int, config: DatabaseConfig) = {
+  def connection(shardName: String, mode: ShardMode.Value, config: DatabaseConfig) = {
     if(config.username.isDefined && config.password.isDefined){
       DriverManager.getConnection(config.url,config.username.get,config.password.get)
     }else{

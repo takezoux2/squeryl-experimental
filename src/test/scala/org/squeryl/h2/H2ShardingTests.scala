@@ -1,8 +1,8 @@
 package org.squeryl.h2
 
 import org.squeryl.sharding.scenario.BlogDbTestRun
-import org.squeryl.sharding.builder.{SimpleShardingSessionBuilder, ShardingSessionBuilder}
-import org.squeryl.sharding.{ConnectionManager, ShardingSession, DatabaseConfig, SimpleShardingBuilderInitializer}
+import org.squeryl.sharding.builder.{SimpleShardedSessionBuilder, ShardedSessionBuilder}
+import org.squeryl.sharding.{ConnectionManager, ShardedSessionFactory, DatabaseConfig, SimpleShardingBuilderInitializer}
 import java.sql.{DriverManager, Connection}
 
 

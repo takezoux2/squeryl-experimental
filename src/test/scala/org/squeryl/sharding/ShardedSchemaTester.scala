@@ -17,7 +17,7 @@ abstract class ShardedSchemaTester extends ShardedDbTestBase{
   var executeSchemaOnReadDatabase = true
 
   private def shardNames = {
-    if(targetShards.isEmpty) ShardingSessionFactory.allShardNames
+    if(targetShards.isEmpty) ShardedSession.shardedSessionRepository.allShardNames
     else targetShards
   }
 

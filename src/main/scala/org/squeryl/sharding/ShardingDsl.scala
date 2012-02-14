@@ -17,78 +17,52 @@ trait ShardingDsl {
    * exec in write mode without transaction
    */
   def use[A](shardName : String)(a : => A) : A = {
-    if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      _executeWithoutTransaction(Session.currentSession,a _)
-    }else{
-      _executeWithoutTransaction(ShardingSessionFactory(shardName).selectWriter, a _)
-    }
+    val session = ShardedSession.getSession(shardName,ShardMode.Write)
+    _executeWithoutTransaction(session,a _)
   }
 
   /**
    * exec in read mode
    */
   def read[A](shardName : String)(a : => A ) : A = {
-    if(hasSameShardSession(shardName,ShardingSession.ModeRead)){
-      _executeWithoutTransaction(Session.currentSession,a _)
-    }else{
-      _executeWithoutTransaction(ShardingSessionFactory(shardName).selectReader, a _)
-    }
+    val session = ShardedSession.getSession(shardName,ShardMode.Read)
+    _executeWithoutTransaction(session,a _)
   }
 
   /**
    * exec in write mode with transaction
    */
   def write[A](shardName : String)( a : => A) : A = {
-    if(hasSameShardSession(shardName,ShardingSession.ModeWrite)){
-      _executeWithoutTransaction(Session.currentSession , a _)
-    }else{
-      val s = Session.currentSessionOption
-      try {
-        if(s != None) s.get.unbindFromCurrentThread
-        _executeTransactionWithin(ShardingSessionFactory(shardName).selectWriter, a _)
-      }
-      finally {
-        if(s != None) s.get.bindToCurrentThread
-      }
-    }
+    val session = ShardedSession.getSession(shardName,ShardMode.Write)
+    _executeTransactionWithin(session,a _)
   }
 
 
-  private def hasSameShardSession(shardName : String , mode : Int) : Boolean = {
-    if(! Session.hasCurrentSession){
-      return false
-    }else{
-      val session = Session.currentSession
-      session.shardInfo match{
-        case Some( (sn,m) ) => sn == shardName && m == mode
-        case _ => false
-      }
-    }
-  }
 
-  private def _executeWithoutTransaction[A](s : Session, a:() => A) = {
-    s.use
+  private def _executeWithoutTransaction[A](s : ShardedSession, a:() => A) : A = {
+    s.use()
     try{
       _using(s,a)
     }finally{
-      s.unuse
-      s.safeClose()
+      if(s.safeClose()){
+        ShardedSession.removeSession(s)
+      }
     }
 
   }
 
-  private def _using[A](session: Session, a: ()=>A): A = {
+  private def _using[A](session: ShardedSession, a: ()=>A): A = {
     val s = Session.currentSessionOption
     try {
       if(s != None) s.get.unbindFromCurrentThread
       try {
-        session.bindToCurrentThread
+        session.session.bindToCurrentThread
         val r = a()
         r
       }
       finally {
-        session.unbindFromCurrentThread
-        session.cleanup
+        session.session.unbindFromCurrentThread
+        session.session.cleanup
       }
     }
     finally {
@@ -96,41 +70,39 @@ trait ShardingDsl {
     }
   }
 
-  private def _executeTransactionWithin[A](s: Session, a: ()=>A) = {
+  private def _executeTransactionWithin[A](s: ShardedSession, a: ()=>A) = {
 
-    val c = s.connection
-
-    if(c.getAutoCommit)
-      c.setAutoCommit(false)
-
+    s.beginTransaction()
     var txOk = false
-    s.use
-    try {
-
-      val res = _using(s, a)
+    s.use()
+    try{
+      val res = _using(s,a)
       txOk = true
       res
-    }
-    finally {
+    }finally {
       try {
         if(txOk)
-          c.commit
+          s.commitTransaction()
         else
-          c.rollback
+          s.rollback()
 
-        s.unuse
       }
       catch {
         case e:SQLException => {
           if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception
         }
       }
-      try{c.close}
+      try{
+        if(s.safeClose){
+          ShardedSession.removeSession(s)
+        }
+      }
       catch {
         case e:SQLException => {
           if(txOk) throw e // if an exception occured b4 the close we don't want to obscure the original exception
         }
       }
     }
+
   }
 }

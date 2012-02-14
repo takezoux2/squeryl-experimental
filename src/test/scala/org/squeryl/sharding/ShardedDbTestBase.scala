@@ -1,6 +1,6 @@
 package org.squeryl.sharding
 
-import builder.SimpleShardingSessionBuilder
+import builder.SimpleShardedSessionBuilder
 import org.squeryl.SessionFactory
 import org.scalatest._
 import matchers.{MustMatchers, ShouldMatchers}
@@ -58,14 +58,18 @@ trait SimpleShardingBuilderInitializer{
       for(c <- settingSet._3){
         builder.addReader(c)
       }
-      ShardingSessionFactory.addShard(builder.create())
+      val repos = new ShardedSessionRepositoryImpl()
+      repos.addFactory(builder.create())
+      ShardedSession.shardedSessionRepository = repos
+
+
     }
 
     true
   }
 
   def createBuilder() = {
-    new SimpleShardingSessionBuilder()
+    new SimpleShardedSessionBuilder()
   }
 
   /**

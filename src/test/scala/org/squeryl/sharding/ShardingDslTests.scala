@@ -1,5 +1,8 @@
 package org.squeryl.sharding
 
+import org.scalatest.FunSuite
+import org.scalatest.matchers.ShouldMatchers
+
 /**
  * Created by IntelliJ IDEA.
  * User: takezoux3
@@ -8,6 +11,9 @@ package org.squeryl.sharding
  * To change this template use File | Settings | File Templates.
  */
 
-class ShardingDslTests {
+class ShardingDslTests extends FunSuite with ShouldMatchers {
+
+
+
 
 }
