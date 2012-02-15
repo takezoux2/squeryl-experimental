@@ -13,6 +13,7 @@ abstract class ShardedSchemaTester extends ShardedDbTestBase{
 
   def schema : Schema
 
+  var cleanUpDatabaseAfterTest = false
 
   var executeSchemaOnReadDatabase = true
 
@@ -36,7 +37,7 @@ abstract class ShardedSchemaTester extends ShardedDbTestBase{
 
   override def afterAll(){
     super.afterAll
-    if(notIgnored){
+    if(notIgnored && cleanUpDatabaseAfterTest){
       for(s <- shardNames){
         use(s){
           schema.drop

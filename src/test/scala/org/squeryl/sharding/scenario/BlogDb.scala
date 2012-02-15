@@ -60,13 +60,14 @@ abstract class BlogDbTestRun extends ShardedSchemaTester {
     userIds.foreach(createUser(_))
 
     for(userId <- userIds){
-      val shard = selectShard(userId)
-      val differentShardUsers = userIds.filter(i => shard != selectShard(i) )
-      read(shard){
-        users.lookup(userId) must not be(None)
-        for(id <- differentShardUsers){
-          users.lookup(id).foreach(u => println("#ID" + u.id))
-          users.lookup(id) must be(None)
+      val myShard = selectShard(userId)
+      for( shard <- targetShards){
+        read(shard){
+          if(shard == myShard){
+            users.lookup(userId) must not be(None)
+          }else{
+            users.lookup(userId) must be(None)
+          }
         }
       }
     }

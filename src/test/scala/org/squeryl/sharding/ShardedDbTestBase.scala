@@ -4,6 +4,7 @@ import builder.SimpleShardedSessionBuilder
 import org.scalatest._
 import matchers.{MustMatchers, ShouldMatchers}
 import org.squeryl.{PrimitiveTypeMode, SessionFactory}
+import org.squeryl.framework.FileConfigReader
 
 /**
  *
@@ -15,6 +16,8 @@ abstract class ShardedDbTestBase extends FunSuite with MustMatchers with BeforeA
 
   def targetShards : List[String]
 
+  def skipTest_? : Boolean
+
   def initializeSessions() : Boolean
 
   var notIgnored = true
@@ -23,7 +26,12 @@ abstract class ShardedDbTestBase extends FunSuite with MustMatchers with BeforeA
 
   override def beforeAll(){
     super.beforeAll
-    notIgnored = initializeSessions()
+    if(skipTest_?){
+      println("Test:" + getClass() + " will be skipped")
+      notIgnored = false
+    }else{
+      notIgnored = initializeSessions()
+    }
   }
 
   override protected def runTest(testName: String,
@@ -41,6 +49,13 @@ abstract class ShardedDbTestBase extends FunSuite with MustMatchers with BeforeA
 }
 
 trait SimpleShardingBuilderInitializer{
+
+  lazy val config = {
+    new FileConfigReader("org.squeryl.tests.cfg")
+  }
+
+
+  def skipTest_? : Boolean
 
   var _targetShards : List[String] = Nil
   def targetShards = _targetShards

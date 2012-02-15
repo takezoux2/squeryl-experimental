@@ -13,6 +13,10 @@ import java.sql.{DriverManager, Connection}
  */
 
 trait H2_FileShards extends SimpleShardingBuilderInitializer{
+
+
+  def skipTest_? = false
+
   def shardSettings: List[(String, List[DatabaseConfig], List[DatabaseConfig])] = {
     List(
      ("h2_file_shard1" ,List(new DatabaseConfig("jdbc:h2:file:target/h2db/shard1",None,None )),Nil),
