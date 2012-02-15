@@ -13,10 +13,10 @@ import org.squeryl.sharding._
 
 trait RawSQLSupport{
 
-  def shardedSessionProxy : ShardedSessionProxy
+  def shardedSessionCache : ShardedSessionCache
 
   def execute[T](shardName : String)(func : DAO => T) : T = {
-    val session = shardedSessionProxy.getSession(shardName,ShardMode.Write)
+    val session = shardedSessionCache.getSession(shardName,ShardMode.Write)
     
     session.use()
     session.beginTransaction()
@@ -35,7 +35,7 @@ trait RawSQLSupport{
         session.rollback()
       }
       if(session.safeClose()){
-        shardedSessionProxy.removeSession(session)
+        shardedSessionCache.removeSession(session)
       }
     }
   }

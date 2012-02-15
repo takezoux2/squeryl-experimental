@@ -60,7 +60,7 @@ trait SimpleShardingBuilderInitializer{
       }
       val repos = new ShardedSessionRepositoryImpl()
       repos.addFactory(builder.create())
-      PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository = repos
+      PrimitiveTypeMode.shardedSessionCache.shardedSessionRepository = repos
 
 
     }

@@ -13,12 +13,12 @@ import org.squeryl.{SessionFactory, Session}
 
 trait ShardingDsl {
 
-  val shardedSessionProxy = new ShardedSessionProxy
+  val shardedSessionCache = new ShardedSessionCache
   /**
    * exec in write mode without transaction
    */
   def use[A](shardName : String)(a : => A) : A = {
-    val session = shardedSessionProxy.getSession(shardName,ShardMode.Write)
+    val session = shardedSessionCache.getSession(shardName,ShardMode.Write)
     _executeWithoutTransaction(session,a _)
   }
 
@@ -26,7 +26,7 @@ trait ShardingDsl {
    * exec in read mode
    */
   def read[A](shardName : String)(a : => A ) : A = {
-    val session = shardedSessionProxy.getSession(shardName,ShardMode.Read)
+    val session = shardedSessionCache.getSession(shardName,ShardMode.Read)
     _executeWithoutTransaction(session,a _)
   }
 
@@ -34,7 +34,7 @@ trait ShardingDsl {
    * exec in write mode with transaction
    */
   def write[A](shardName : String)( a : => A) : A = {
-    val session = shardedSessionProxy.getSession(shardName,ShardMode.Write)
+    val session = shardedSessionCache.getSession(shardName,ShardMode.Write)
     _executeTransactionWithin(session,a _)
   }
 
@@ -46,7 +46,7 @@ trait ShardingDsl {
       _using(s,a)
     }finally{
       if(s.safeClose()){
-        shardedSessionProxy.removeSession(s)
+        shardedSessionCache.removeSession(s)
       }
     }
 
@@ -62,7 +62,7 @@ trait ShardingDsl {
       val res = _using(s,a)
       s.commitTransaction()
       if(s.safeClose){
-        shardedSessionProxy.removeSession(s)
+        shardedSessionCache.removeSession(s)
       }
       txOk = true
       res
@@ -70,7 +70,7 @@ trait ShardingDsl {
       case e : Exception => {
         _ignoreException(s.rollback())
         _ignoreException(s.forceClose())
-        _ignoreException(shardedSessionProxy.removeSession(s))
+        _ignoreException(shardedSessionCache.removeSession(s))
         throw e
       }
     }

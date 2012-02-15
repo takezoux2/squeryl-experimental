@@ -23,7 +23,7 @@ class SimpleUsageTest extends FlatSpec with MustMatchers {
 
       //register shard
       ShardedSession.addFactory(builder.create)
-      //PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository.addFactory(builder.create())
+      //PrimitiveTypeMode.shardedSessionCache.shardedSessionRepository.addFactory(builder.create())
     }
     //second shard
     {
@@ -38,7 +38,7 @@ class SimpleUsageTest extends FlatSpec with MustMatchers {
 
       //register shard
       ShardedSession.addFactory(builder.create)
-      //PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository.addFactory(builder.create())
+      //PrimitiveTypeMode.shardedSessionCache.shardedSessionRepository.addFactory(builder.create())
     }
 
 

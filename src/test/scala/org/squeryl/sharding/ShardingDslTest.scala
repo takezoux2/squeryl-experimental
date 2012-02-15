@@ -26,7 +26,7 @@ class ShardingDslTest extends FlatSpec with MustMatchersForJUnit {
   val shardedSessionRepo = mock[ShardedSessionRepository]
 
   val dsl = new ShardingDsl {
-    override val shardedSessionProxy = new ShardedSessionProxy{
+    override val shardedSessionCache = new ShardedSessionCache{
       shardedSessionRepository = shardedSessionRepo
     }
   }

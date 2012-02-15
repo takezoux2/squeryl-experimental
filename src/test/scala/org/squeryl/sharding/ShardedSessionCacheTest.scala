@@ -14,7 +14,7 @@ import org.scalatest.junit.{JUnitRunner, JUnitSuite}
  */
 
 @RunWith(classOf[JUnitRunner])
-class ShardedSessionProxyTest extends FlatSpec with MustMatchers{
+class ShardedSessionCacheTest extends FlatSpec with MustMatchers{
 
   val cycle = new JMockCycle
   import cycle._
@@ -28,12 +28,12 @@ class ShardedSessionProxyTest extends FlatSpec with MustMatchers{
   }
 
 
-  class ShardedSessionProxyTestImpl extends ShardedSessionProxy{
+  class ShardedSessionCacheTestImpl extends ShardedSessionCache{
     shardedSessionRepository = mockRepo
   }
 
   "Same mode getSession calls" should "create session once" in{
-    val shardedSessionProxy = new ShardedSessionProxyTestImpl
+    val shardedSessionCache = new ShardedSessionCacheTestImpl
     val shardName1 = "shard1"
     val shardName2 = "shard2"
     expecting{  e => import e._
@@ -41,18 +41,18 @@ class ShardedSessionProxyTest extends FlatSpec with MustMatchers{
       oneOf(mockRepo).apply(shardName2,ShardMode.Write);will(returnValue(dSession(shardName2,ShardMode.Write)))
     }
     whenExecuting {
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName2,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName2,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName2,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName2,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName2,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName2,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName2,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName2,ShardMode.Write) must not be(null)
     }
   }
 
   "getSession Mode Read -> Wirte calls" should "create session twice" in{
-    val shardedSessionProxy = new ShardedSessionProxyTestImpl
+    val shardedSessionCache = new ShardedSessionCacheTestImpl
     val shardName1 = "shard1"
 
     expecting{  e => import e._
@@ -63,31 +63,31 @@ class ShardedSessionProxyTest extends FlatSpec with MustMatchers{
       //oneOf(session).forceClose()
     }
     whenExecuting {
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
     }
   }
 
   "getSession Mode Write -> Read calls" should "create session once" in{
-    val shardedSessionProxy = new ShardedSessionProxyTestImpl
+    val shardedSessionCache = new ShardedSessionCacheTestImpl
     val shardName1 = "shard1"
 
     expecting{  e => import e._
       oneOf(mockRepo).apply(shardName1,ShardMode.Write);will(returnValue(dSession(shardName1,ShardMode.Write)))
     }
     whenExecuting {
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Read) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Read) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
     }
   }
 
   "getSession calls" should "create session after remove session" in{
-    val shardedSessionProxy = new ShardedSessionProxyTestImpl
+    val shardedSessionCache = new ShardedSessionCacheTestImpl
     val shardName1 = "shard1"
 
     expecting{  e => import e._
@@ -95,12 +95,12 @@ class ShardedSessionProxyTest extends FlatSpec with MustMatchers{
       oneOf(mockRepo).apply(shardName1,ShardMode.Write);will(returnValue(dSession(shardName1,ShardMode.Write)))
     }
     whenExecuting {
-      val ses =  shardedSessionProxy.getSession(shardName1,ShardMode.Write)
+      val ses =  shardedSessionCache.getSession(shardName1,ShardMode.Write)
       ses must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
-      shardedSessionProxy.removeSession(ses)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
-      shardedSessionProxy.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.removeSession(ses)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
+      shardedSessionCache.getSession(shardName1,ShardMode.Write) must not be(null)
     }
   }
 
