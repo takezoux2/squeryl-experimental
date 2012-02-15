@@ -1,6 +1,7 @@
 package org.squeryl.sharding
 
-import org.squeryl.Session
+import java.sql.Connection
+import org.squeryl.{PrimitiveTypeMode, SquerylException, Session}
 
 /**
  * Created by IntelliJ IDEA.
@@ -9,21 +10,23 @@ import org.squeryl.Session
  * Time: 23:56
  * To change this template use File | Settings | File Templates.
  */
-
-
 object ShardedSession{
+  def addFactory( sessionFactory : ShardedSessionFactory) = {
+    PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository.addFactory(sessionFactory)
+  }
+}
 
-
+class ShardedSessionProxy(){
 
   var shardedSessionRepository : ShardedSessionRepository = new ShardedSessionRepositoryImpl()
 
 
-  val shardedSessions = new ThreadLocal[scala.collection.mutable.Map[String, ShardedSession]]{
+  protected val shardedSessions = new ThreadLocal[scala.collection.mutable.Map[String, ShardedSession]]{
     override def initialValue() = scala.collection.mutable.HashMap.empty
 
     override def remove() {
       get().values.foreach(entry => {
-        entry.session.close
+        entry.forceClose()
       })
     }
   }
@@ -31,7 +34,7 @@ object ShardedSession{
   def getSession(name : String, mode : ShardMode.Value) : ShardedSession = {
     _getSession(name) match{
       case Some(entry) => {
-        if(ShardMode.hasSameFunction(mode,entry.shardMode)){
+        if(ShardMode.hasSameFunction(entry.shardMode, mode)){
           entry
         }else{
           entry.forceClose()
@@ -44,21 +47,22 @@ object ShardedSession{
     }
   }
   def removeSession(session : ShardedSession) = {
+    session.forceClose()
     shardedSessions.get().remove(session.shardName)
   }
   
-  private def _createSession(name : String , mode : ShardMode.Value) = {
+  protected def _createSession(name : String , mode : ShardMode.Value) = {
     val session = shardedSessionRepository(name,mode)
     shardedSessions.get() +=(name -> session)
     session
   }
 
-  private def _getSession( name : String) : Option[ShardedSession] = {
+  protected def _getSession( name : String) : Option[ShardedSession] = {
     shardedSessions.get().get(name)
   }
 
-  private def _setSession( name : String , mode : ShardMode.Value, session : Session) : ShardedSession = {
-    val shardedSession = new ShardedSession(name,mode,session)
+  protected def _setSession( name : String , mode : ShardMode.Value, session : Session) : ShardedSession = {
+    val shardedSession = new ShardedSessionImpl(name,mode,session)
     shardedSessions.get().update(name,shardedSession)
     shardedSession
   }
@@ -67,31 +71,76 @@ object ShardedSession{
 
 }
 
-case class ShardedSession(shardName : String , shardMode : ShardMode.Value,session : Session){
+trait ShardedSession{
+  def shardName : String
+  def shardMode : ShardMode.Value
 
-  private var useCounter = 1
-  def safeClose() : Boolean = {
-    useCounter -= 1
-    if(useCounter <= 0){
-      session.close
-      true
-    }else{
-      false
-    }
-  }
+  def bindToCurrentThread() : Unit
+  def unbindFromCurrentThread() : Unit
+
+  def use() : Unit
+  def cleanup() : Unit
+
+  /**
+   * try to close.
+   * If connection is closed,it returns true
+   * @return true if connection is closed
+   */
+  def safeClose() : Boolean
+
+  /**
+   * force close.
+   * If connection is closed,it returns true
+   * @return always true
+   */
+  def forceClose() : Boolean
+  def beginTransaction() : Unit
+  def commitTransaction() : Boolean
+  def rollback() : Boolean
+
+  def connection : Connection
+
+}
+
+case class ShardedSessionImpl(shardName : String ,shardMode : ShardMode.Value,session : Session) extends ShardedSession{
+
+  private var useCounter = 0
+  private var closed = false
+
+  def bindToCurrentThread() {session.bindToCurrentThread}
+
+  def unbindFromCurrentThread() {session.unbindFromCurrentThread}
 
   def use() {
+    if(closed){
+      throw new SquerylException("ShededSession for (%s,%s) is already closed!".format(shardName,shardMode))
+    }
     useCounter += 1
   }
 
-  def forceClose()  : Boolean = {
-    if(useCounter > 0){
+
+  def cleanup() {session.cleanup}
+
+  def safeClose() : Boolean = {
+    if(closed) return false
+    useCounter -= 1
+    if(useCounter <= 0){
       session.close
+      closed = true
       useCounter = 0
       true
     }else{
       false
     }
+  }
+
+
+  def forceClose()  : Boolean = {
+    if(closed)return false
+    session.close
+    useCounter = 0
+    closed = true
+    true
   }
   
   private var transactionCounter = 0
@@ -103,23 +152,34 @@ case class ShardedSession(shardName : String , shardMode : ShardMode.Value,sessi
         c.setAutoCommit(false)
       }
     }
+    transactionCounter += 1
   }
   
   def commitTransaction() = {
-    transactionCounter -= 1
-    if(transactionCounter <= 0){
-      val c = session.connection
-      c.commit
+    if(transactionCounter > 0){
+      transactionCounter -= 1
+      if(transactionCounter <= 0){
+        transactionCounter = 0
+        val c = session.connection
+        c.commit
+        true
+      }else false
+    }else{
+      false
     }
   }
   
   def rollback() = {
     if(transactionCounter > 0){
-      transactionCounter = 0
       session.connection.rollback()
+      transactionCounter = 0
+      true
+    }else{
+      false
     }
   }
 
+  def connection: Connection = session.connection
 }
 
 object ShardMode extends Enumeration{
@@ -128,6 +188,6 @@ object ShardMode extends Enumeration{
   val Write = Value(1,"write")
 
   def hasSameFunction( val1 : ShardMode.Value , val2: ShardMode.Value) = {
-    val1.id <= val2.id
+    val1.id >= val2.id
   }
 }

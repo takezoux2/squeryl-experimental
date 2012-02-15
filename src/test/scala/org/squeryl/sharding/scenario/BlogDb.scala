@@ -71,7 +71,6 @@ abstract class BlogDbTestRun extends ShardedSchemaTester {
       }
     }
 
-    test("nested")
 
   }
 

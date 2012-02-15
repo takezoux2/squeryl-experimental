@@ -13,11 +13,12 @@ import org.squeryl.{SessionFactory, Session}
 
 trait ShardingDsl {
 
+  val shardedSessionProxy = new ShardedSessionProxy
   /**
    * exec in write mode without transaction
    */
   def use[A](shardName : String)(a : => A) : A = {
-    val session = ShardedSession.getSession(shardName,ShardMode.Write)
+    val session = shardedSessionProxy.getSession(shardName,ShardMode.Write)
     _executeWithoutTransaction(session,a _)
   }
 
@@ -25,7 +26,7 @@ trait ShardingDsl {
    * exec in read mode
    */
   def read[A](shardName : String)(a : => A ) : A = {
-    val session = ShardedSession.getSession(shardName,ShardMode.Read)
+    val session = shardedSessionProxy.getSession(shardName,ShardMode.Read)
     _executeWithoutTransaction(session,a _)
   }
 
@@ -33,7 +34,7 @@ trait ShardingDsl {
    * exec in write mode with transaction
    */
   def write[A](shardName : String)( a : => A) : A = {
-    val session = ShardedSession.getSession(shardName,ShardMode.Write)
+    val session = shardedSessionProxy.getSession(shardName,ShardMode.Write)
     _executeTransactionWithin(session,a _)
   }
 
@@ -45,10 +46,44 @@ trait ShardingDsl {
       _using(s,a)
     }finally{
       if(s.safeClose()){
-        ShardedSession.removeSession(s)
+        shardedSessionProxy.removeSession(s)
       }
     }
 
+  }
+
+
+  private def _executeTransactionWithin[A](s: ShardedSession, a: ()=>A) = {
+
+    s.use()
+    s.beginTransaction()
+    var txOk = false
+    try{
+      val res = _using(s,a)
+      s.commitTransaction()
+      if(s.safeClose){
+        shardedSessionProxy.removeSession(s)
+      }
+      txOk = true
+      res
+    }catch{
+      case e : Exception => {
+        _ignoreException(s.rollback())
+        _ignoreException(s.forceClose())
+        _ignoreException(shardedSessionProxy.removeSession(s))
+        throw e
+      }
+    }
+  }
+
+  @inline
+  private def _ignoreException(func : => Unit) = {
+    try{
+      func
+    }catch{
+      case e : Exception => e.printStackTrace()
+    }
+    
   }
 
   private def _using[A](session: ShardedSession, a: ()=>A): A = {
@@ -56,53 +91,17 @@ trait ShardingDsl {
     try {
       if(s != None) s.get.unbindFromCurrentThread
       try {
-        session.session.bindToCurrentThread
+        session.bindToCurrentThread
         val r = a()
         r
       }
       finally {
-        session.session.unbindFromCurrentThread
-        session.session.cleanup
+        session.unbindFromCurrentThread
+        session.cleanup
       }
     }
     finally {
       if(s != None) s.get.bindToCurrentThread
     }
-  }
-
-  private def _executeTransactionWithin[A](s: ShardedSession, a: ()=>A) = {
-
-    s.beginTransaction()
-    var txOk = false
-    s.use()
-    try{
-      val res = _using(s,a)
-      txOk = true
-      res
-    }finally {
-      try {
-        if(txOk)
-          s.commitTransaction()
-        else
-          s.rollback()
-
-      }
-      catch {
-        case e:SQLException => {
-          if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception
-        }
-      }
-      try{
-        if(s.safeClose){
-          ShardedSession.removeSession(s)
-        }
-      }
-      catch {
-        case e:SQLException => {
-          if(txOk) throw e // if an exception occured b4 the close we don't want to obscure the original exception
-        }
-      }
-    }
-
   }
 }

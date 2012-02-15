@@ -1,7 +1,7 @@
 package org.squeryl.sharding
 
-import org.squeryl.Schema
 import org.squeryl.PrimitiveTypeMode._
+import org.squeryl.{PrimitiveTypeMode, Schema}
 
 /**
  *
@@ -17,7 +17,7 @@ abstract class ShardedSchemaTester extends ShardedDbTestBase{
   var executeSchemaOnReadDatabase = true
 
   private def shardNames = {
-    if(targetShards.isEmpty) ShardedSession.shardedSessionRepository.allShardNames
+    if(targetShards.isEmpty) PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository.allShardNames
     else targetShards
   }
 

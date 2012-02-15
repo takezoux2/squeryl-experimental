@@ -3,6 +3,7 @@ package org.squeryl.sharding
 import builder.SimpleShardedSessionBuilder
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.{MustMatchers, ShouldMatchers}
+import org.squeryl.PrimitiveTypeMode
 
 /**
  *
@@ -21,7 +22,8 @@ class SimpleUsageTest extends FlatSpec with MustMatchers {
       builder.addWriter("jdbc:h2:mem:shard1")
 
       //register shard
-      ShardedSession.shardedSessionRepository.addFactory(builder.create())
+      ShardedSession.addFactory(builder.create)
+      //PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository.addFactory(builder.create())
     }
     //second shard
     {
@@ -35,7 +37,8 @@ class SimpleUsageTest extends FlatSpec with MustMatchers {
       builder.addReader(new DatabaseConfig("jdbc:h2:mem:shard2_slave2"))
 
       //register shard
-      ShardedSession.shardedSessionRepository.addFactory(builder.create())
+      ShardedSession.addFactory(builder.create)
+      //PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository.addFactory(builder.create())
     }
 
 

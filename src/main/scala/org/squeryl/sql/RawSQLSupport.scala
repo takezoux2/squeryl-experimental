@@ -3,7 +3,7 @@ package org.squeryl.sql
 import org.squeryl.Session
 import com.mysql.jdbc.PreparedStatement
 import java.sql.{SQLException, ResultSet}
-import org.squeryl.sharding.{ShardMode, ShardedSession, ShardedSessionFactory, ShardedSessionRepository}
+import org.squeryl.sharding._
 
 /**
  * 
@@ -13,15 +13,17 @@ import org.squeryl.sharding.{ShardMode, ShardedSession, ShardedSessionFactory, S
 
 trait RawSQLSupport{
 
+  def shardedSessionProxy : ShardedSessionProxy
+
   def execute[T](shardName : String)(func : DAO => T) : T = {
-    val session = ShardedSession.getSession(shardName,ShardMode.Write)
+    val session = shardedSessionProxy.getSession(shardName,ShardMode.Write)
     
     session.use()
     session.beginTransaction()
     var txOk = false
     
     try{
-      val connection = session.session.connection
+      val connection = session.connection
       val dao = new DAO(connection)
       val r = func(dao)
       txOk = true
@@ -33,7 +35,7 @@ trait RawSQLSupport{
         session.rollback()
       }
       if(session.safeClose()){
-        ShardedSession.removeSession(session)
+        shardedSessionProxy.removeSession(session)
       }
     }
   }

@@ -1,9 +1,9 @@
 package org.squeryl.sharding
 
 import builder.SimpleShardedSessionBuilder
-import org.squeryl.SessionFactory
 import org.scalatest._
 import matchers.{MustMatchers, ShouldMatchers}
+import org.squeryl.{PrimitiveTypeMode, SessionFactory}
 
 /**
  *
@@ -60,7 +60,7 @@ trait SimpleShardingBuilderInitializer{
       }
       val repos = new ShardedSessionRepositoryImpl()
       repos.addFactory(builder.create())
-      ShardedSession.shardedSessionRepository = repos
+      PrimitiveTypeMode.shardedSessionProxy.shardedSessionRepository = repos
 
 
     }

@@ -34,7 +34,7 @@ trait ShardedSessionFactory{
   def session(mode : ShardMode.Value , index : Int) : ShardedSession = {
     
     def toShardedSession(session  :Session) = {
-      ShardedSession(shardName,mode,session)
+      ShardedSessionImpl(shardName,mode,session)
     }
     
     val config = this.config(mode,index)
@@ -85,11 +85,12 @@ class ShardedSessionRepositoryImpl extends ShardedSessionRepository {
   def allShardNames = shardedSessionFactories.keys.toList
 
   def addFactory(shardingSession : ShardedSessionFactory)  = {
-    if(shardedSessionFactories.size == 0){
+    if(SessionFactory.concreteFactory.isEmpty){
       // register first ShardedSessionFactory as default squeryl session.
-      SessionFactory.concreteFactory = Some( () =>{
-        shardingSession.selectWriter.session
-      })
+      SessionFactory.concreteFactory = shardingSession.selectWriter match{
+        case ShardedSessionImpl(name,mode,session) => Some(() => session)
+        case _ => None
+      }
     }
     shardedSessionFactories +=( shardingSession.shardName -> shardingSession)
   }
