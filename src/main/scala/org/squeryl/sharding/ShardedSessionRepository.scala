@@ -2,9 +2,9 @@ package org.squeryl.sharding
 
 import org.squeryl.internals.DatabaseAdapter
 import com.mysql.jdbc.Connection
-import org.squeryl.{SessionFactory, Session}
 import org.squeryl.logging.StatisticsListener
 import java.lang.ThreadLocal
+import org.squeryl.{SquerylException, SessionFactory, Session}
 
 /**
  * Created by IntelliJ IDEA.
@@ -96,7 +96,13 @@ class ShardedSessionRepositoryImpl extends ShardedSessionRepository {
   }
 
   def apply(shardName : String, mode : ShardMode.Value) : ShardedSession = {
-    shardedSessionFactories(shardName).session(mode,0)
+    try{
+      shardedSessionFactories(shardName).session(mode,0)
+    }catch{
+      case e : NoSuchElementException => {
+        throw new ShardNotFoundException(shardName)
+      }
+    }
   }
 
 

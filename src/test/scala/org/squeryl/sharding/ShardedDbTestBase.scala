@@ -47,7 +47,11 @@ trait SimpleShardingBuilderInitializer{
 
   def initializeSessions() : Boolean = {
 
+    println("Init debug shard sessions")
+    val repos = new ShardedSessionRepositoryImpl()
+    PrimitiveTypeMode.shardedSessionCache.shardedSessionRepository = repos
     for(settingSet <- shardSettings){
+      println("Set shard:" + settingSet._1)
       val builder = createBuilder()
       
       builder.name = settingSet._1
@@ -58,11 +62,7 @@ trait SimpleShardingBuilderInitializer{
       for(c <- settingSet._3){
         builder.addReader(c)
       }
-      val repos = new ShardedSessionRepositoryImpl()
       repos.addFactory(builder.create())
-      PrimitiveTypeMode.shardedSessionCache.shardedSessionRepository = repos
-
-
     }
 
     true

@@ -3,7 +3,7 @@ name := "squeryl"
 
 organization := "org.squeryl"
 
-version := "0.9.5"
+version := "0.9.6-shard-SNAPSHOT"
 
 version <<= version { v => 
   val snapshot = Option(System.getProperty("snapshot")) == Some("true")
@@ -24,7 +24,10 @@ libraryDependencies ++= Seq(
   "postgresql" % "postgresql" % "8.4-701.jdbc4" % "provided",
   "net.sourceforge.jtds" % "jtds" % "1.2.4" % "provided",
   "org.apache.derby" % "derby" % "10.7.1.1" % "provided",
-  "junit" % "junit" % "4.8.2" % "provided"
+  "org.hamcrest" % "hamcrest-core" % "1.3.RC2" % "provided",
+  "junit" % "junit" % "4.10" % "provided",
+  "org.jmock" % "jmock" % "2.6.0-RC2" % "provided",
+  "org.jmock" % "jmock-legacy" % "2.6.0-RC2" % "provided"
 )
 
 libraryDependencies <+= scalaVersion("org.scala-lang" % "scalap" % _ % "provided")
@@ -52,6 +55,7 @@ publishTo <<= (version) { version: String =>
 }
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
 
 pomExtra :=
     <licenses>
